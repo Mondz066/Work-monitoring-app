@@ -9,8 +9,9 @@
     <link rel="manifest" href="manifest.json">
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#111827">
+    
     <!-- Apple-specific meta tags for PWA -->
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/8b5cf6/ffffff?text=W">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/34d399/ffffff?text=✔️">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Work Monitor">
@@ -31,7 +32,7 @@
         
         <header class="text-center my-6">
             <h1 class="text-3xl font-bold text-white">Work Monitoring Dashboard</h1>
-            <p class="text-gray-400 mt-1">Track your shifts, holidays, and work hours effortlessly.</p>
+            <p class="text-gray-400 mt-1">Your log is saved automatically to this device.</p>
         </header>
 
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
@@ -76,10 +77,8 @@
         
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
             <h2 class="text-xl font-bold mb-4 text-white">Data Management</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                 <button id="save-btn" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-blue-700">Backup Log...</button>
-                 <button id="load-btn" class="w-full bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-gray-700">Restore Log...</button>
-                 <button id="clear-all-btn" class="w-full bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-700">Clear All...</button>
+            <div class="flex justify-center">
+                 <button id="clear-all-btn" class="w-full sm:w-1/2 bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-700">Clear All Log Data...</button>
             </div>
         </div>
 
@@ -96,10 +95,35 @@
             <h2 class="text-xl font-bold mb-4 mt-6 text-white">Days Summary</h2>
             <div id="summary-days-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
         </div>
+        
+        <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-6 border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 text-white">Filter Log History</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label for="month-filter" class="block text-sm font-medium text-gray-300 mb-1">Month</label>
+                        <select id="month-filter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md">
+                            <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                            <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                            <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                            <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="year-filter" class="block text-sm font-medium text-gray-300 mb-1">Year</label>
+                        <select id="year-filter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 self-end">
+                    <button id="apply-filter-btn" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-blue-700">Apply Filter</button>
+                    <button id="reset-filter-btn" class="w-full bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-gray-700">Show All</button>
+                </div>
+            </div>
+        </div>
 
         <div>
             <div class="flex justify-between items-center mb-4">
-                 <h2 class="text-2xl font-bold text-white">Log History</h2>
+                 <h2 id="log-history-title" class="text-2xl font-bold text-white">Log History</h2>
             </div>
             <div id="log-container" class="space-y-3">
                 <p id="empty-log-message" class="text-gray-400 text-center py-8 bg-gray-900 rounded-lg border border-gray-700">No entries yet.</p>
@@ -111,10 +135,9 @@
         <div id="modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
             <h3 id="modal-title" class="text-xl font-bold mb-4 text-white"></h3>
             <p id="modal-instructions" class="text-sm text-gray-400 mb-2"></p>
-            <textarea id="modal-textarea" class="w-full h-40 p-2 bg-gray-700 border border-gray-600 rounded-md text-white"></textarea>
             <div class="mt-4 flex justify-end gap-3">
                 <button id="modal-cancel" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Cancel</button>
-                <button id="modal-action" class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700"></button>
+                <button id="modal-action" class="bg-red-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-700"></button>
             </div>
         </div>
     </div>
@@ -130,16 +153,43 @@
                 summaryDayShift: document.getElementById('summary-day-shift'), summaryMidShift: document.getElementById('summary-mid-shift'),
                 summaryNightShift: document.getElementById('summary-night-shift'), summaryOvertime: document.getElementById('summary-overtime-hours'),
                 summarySpecialHoliday: document.getElementById('summary-special-holiday'), summaryLegalHoliday: document.getElementById('summary-legal-holiday'),
-                saveBtn: document.getElementById('save-btn'),
-                loadBtn: document.getElementById('load-btn'),
                 clearAllBtn: document.getElementById('clear-all-btn'),
                 modalBackdrop: document.getElementById('modal-backdrop'),
                 modalTitle: document.getElementById('modal-title'), modalInstructions: document.getElementById('modal-instructions'),
-                modalTextarea: document.getElementById('modal-textarea'), modalCancel: document.getElementById('modal-cancel'),
-                modalAction: document.getElementById('modal-action')
+                modalCancel: document.getElementById('modal-cancel'),
+                modalAction: document.getElementById('modal-action'),
+                monthFilter: document.getElementById('month-filter'),
+                yearFilter: document.getElementById('year-filter'),
+                applyFilterBtn: document.getElementById('apply-filter-btn'),
+                resetFilterBtn: document.getElementById('reset-filter-btn'),
+                logHistoryTitle: document.getElementById('log-history-title')
             };
 
-            let logs = [];
+            let logs = []; 
+            let displayedLogs = [];
+            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v2'; 
+
+            const saveLogs = () => {
+                try {
+                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs));
+                } catch (error) {
+                    console.error("Error saving logs to localStorage:", error);
+                }
+            };
+
+            const loadLogs = () => {
+                try {
+                    const savedLogs = localStorage.getItem(LOGS_STORAGE_KEY);
+                    if (savedLogs) {
+                        logs = JSON.parse(savedLogs);
+                    } else {
+                        logs = [];
+                    }
+                } catch (error) {
+                    console.error("Error loading or parsing logs from localStorage:", error);
+                    logs = [];
+                }
+            };
 
             const setCurrentDate = () => {
                 const now = new Date();
@@ -157,7 +207,7 @@
             const updateSummary = () => {
                 let dayHours = 0, midHours = 0, nightHours = 0, overtimeHours = 0, specialHolidayHours = 0, legalHolidayHours = 0;
                 
-                logs.forEach(log => {
+                displayedLogs.forEach(log => {
                     if (log.status === 'Present') {
                         overtimeHours += log.overtimeHours || 0;
                         const regularHours = log.regularHours || 0;
@@ -179,24 +229,16 @@
                 elements.summarySpecialHoliday.textContent = specialHolidayHours.toFixed(2);
                 elements.summaryLegalHoliday.textContent = legalHolidayHours.toFixed(2);
                 
-                const dayCounts = logs.reduce((acc, log) => {
+                const dayCounts = displayedLogs.reduce((acc, log) => {
                     switch(log.status) {
-                        case 'Present':
-                            acc['Present'] = (acc['Present'] || 0) + 1;
-                            break;
-                        case 'Special Holiday (130%)':
-                            acc['Present'] = (acc['Present'] || 0) + 1;
-                            break;
+                        case 'Present': acc['Present'] = (acc['Present'] || 0) + 1; break;
+                        case 'Special Holiday (130%)': acc['Present'] = (acc['Present'] || 0) + 1; break;
                         case 'Legal Holiday (200%)':
                             acc['Present'] = (acc['Present'] || 0) + 1;
                             acc['HolidayWithWork'] = (acc['HolidayWithWork'] || 0) + 1;
                             break;
-                        case 'Legal/Special Holiday no work':
-                            acc['Holiday'] = (acc['Holiday'] || 0) + 1;
-                            break;
-                        default:
-                            acc[log.status] = (acc[log.status] || 0) + 1;
-                            break;
+                        case 'Legal/Special Holiday no work': acc['Holiday'] = (acc['Holiday'] || 0) + 1; break;
+                        default: acc[log.status] = (acc[log.status] || 0) + 1; break;
                     }
                     return acc;
                 }, {});
@@ -212,31 +254,30 @@
             
             const getStatusBadge = (status) => {
                 const c = "text-xs font-medium px-2.5 py-1 rounded-full";
-                const statuses = {
-                    'Sick Leave': `bg-yellow-900/50 text-yellow-300`, 'Leave': `bg-blue-900/50 text-blue-300`,
-                    'Rest Day': `bg-gray-700 text-gray-300`
-                };
+                const statuses = {'Sick Leave': `bg-yellow-900/50 text-yellow-300`, 'Leave': `bg-blue-900/50 text-blue-300`, 'Rest Day': `bg-gray-700 text-gray-300`};
                 return statuses[status] ? `<span class="${c} ${statuses[status]}">${status}</span>` : '';
             };
 
             const renderLogs = () => {
                 elements.logContainer.innerHTML = ''; 
-                elements.emptyLogMessage.style.display = logs.length === 0 ? 'block' : 'none';
+                if (displayedLogs.length === 0) {
+                    elements.emptyLogMessage.textContent = logs.length === 0 ? "No entries yet." : "No entries found for this period.";
+                    elements.emptyLogMessage.style.display = 'block';
+                } else {
+                    elements.emptyLogMessage.style.display = 'none';
+                }
                 
-                logs.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
+                displayedLogs.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
                     const el = document.createElement('div');
                     el.className = 'bg-gray-900 rounded-lg shadow-sm p-4 flex items-center justify-between new-entry border border-gray-700';
                     const dayOfWeek = new Date(log.date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short' });
-                    
                     let detailsHtml = '';
                     const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(log.status);
-
                     if (isWorkEntry) {
                         const totalHours = (log.regularHours || 0) + (log.overtimeHours || 0);
                         let breakdown = `(${log.regularHours.toFixed(2)} Reg`;
                         if (log.overtimeHours > 0) breakdown += ` + ${log.overtimeHours.toFixed(2)} OT`;
                         breakdown += ')';
-                        
                         let badge = '';
                         if(log.status === 'Legal Holiday (200%)') badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-900/50 text-red-300">LEGAL 200%</span>`;
                         else if (log.status === 'Special Holiday (130%)') badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-300">SPECIAL 130%</span>`;
@@ -246,24 +287,13 @@
                              else if (startHour >= 14 && startHour < 18) badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-900/50 text-orange-300">MID</span>`;
                              else badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">DAY</span>`;
                         }
-                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1">
-                                         <span class="text-sm text-gray-400">${log.startTime} - ${log.endTime}</span>
-                                         <span class="text-lg text-green-400 font-semibold">${totalHours.toFixed(2)} hrs</span>
-                                         <span class="text-xs text-gray-500">${breakdown}</span>
-                                         ${badge}
-                                       </div>`;
+                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1"><span class="text-sm text-gray-400">${log.startTime} - ${log.endTime}</span><span class="text-lg text-green-400 font-semibold">${totalHours.toFixed(2)} hrs</span><span class="text-xs text-gray-500">${breakdown}</span>${badge}</div>`;
                     } else if (log.status === 'Legal/Special Holiday no work') {
-                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1">
-                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300">PAID HOLIDAY</span>
-                                       </div>`;
-                    }
-                    else { 
+                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1"><span class="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300">PAID HOLIDAY</span></div>`;
+                    } else { 
                         detailsHtml = getStatusBadge(log.status); 
                     }
-                    
-                    el.innerHTML = `
-                        <div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div></div>
-                        <button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full flex-shrink-0"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
+                    el.innerHTML = `<div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div></div><button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full flex-shrink-0"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
                     elements.logContainer.appendChild(el);
                 });
                 updateSummary();
@@ -275,6 +305,14 @@
                 elements.startTimeInput.required = isWorkEntry;
                 elements.endTimeInput.required = isWorkEntry;
             };
+
+            const populateYearFilter = () => {
+                const currentYear = new Date().getFullYear();
+                const years = [...new Set(logs.map(log => new Date(log.date).getFullYear()))];
+                if (!years.includes(currentYear)) years.push(currentYear);
+                years.sort((a,b) => b-a);
+                elements.yearFilter.innerHTML = years.map(year => `<option value="${year}">${year}</option>`).join('');
+            };
             
             elements.logForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -283,19 +321,19 @@
                     startTime: elements.startTimeInput.value, endTime: elements.endTimeInput.value,
                     regularHours: 0, overtimeHours: 0
                 };
-                
                 const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(newLog.status);
-                
                 if (newLog.status === 'Legal/Special Holiday no work') {
-                    newLog.regularHours = 0;
-                    newLog.overtimeHours = 0;
+                    newLog.regularHours = 0; newLog.overtimeHours = 0;
                 } else if (isWorkEntry) {
-                    if (!newLog.startTime || !newLog.endTime) { alert('Please fill in both Start and End Time.'); return; }
                     const totalHours = calculateHours(newLog.startTime, newLog.endTime);
                     newLog.regularHours = Math.min(totalHours, 8);
                     newLog.overtimeHours = Math.max(0, totalHours - 8);
                 }
                 logs.push(newLog);
+                saveLogs();
+                displayedLogs = [...logs];
+                elements.logHistoryTitle.textContent = "Log History";
+                populateYearFilter();
                 renderLogs();
                 elements.logForm.reset();
                 setCurrentDate(); 
@@ -306,90 +344,73 @@
                 const btn = e.target.closest('.delete-btn');
                 if (btn) {
                     logs = logs.filter(log => log.id !== parseInt(btn.dataset.id));
+                    saveLogs();
+                    displayedLogs = [...logs];
+                    elements.logHistoryTitle.textContent = "Log History";
+                    populateYearFilter();
                     renderLogs();
                 }
             });
-            
-            const resetModalStyles = () => {
-                elements.modalTextarea.style.display = 'block';
-                elements.modalAction.className = 'bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700';
-            };
 
-            const closeModal = () => {
-                elements.modalBackdrop.style.display = 'none';
-                resetModalStyles();
-            };
+            elements.applyFilterBtn.addEventListener('click', () => {
+                const month = parseInt(elements.monthFilter.value);
+                const year = parseInt(elements.yearFilter.value);
+                if (isNaN(year)) {
+                    displayedLogs = [];
+                } else {
+                    displayedLogs = logs.filter(log => {
+                        const logDate = new Date(log.date + 'T00:00:00');
+                        return logDate.getMonth() === month && logDate.getFullYear() === year;
+                    });
+                }
+                const monthName = elements.monthFilter.options[elements.monthFilter.selectedIndex].text;
+                elements.logHistoryTitle.textContent = `Log History (${monthName} ${year || ''})`;
+                renderLogs();
+            });
+
+            elements.resetFilterBtn.addEventListener('click', () => {
+                displayedLogs = [...logs];
+                elements.logHistoryTitle.textContent = "Log History";
+                renderLogs();
+            });
+            
+            const closeModal = () => elements.modalBackdrop.style.display = 'none';
             elements.modalCancel.addEventListener('click', closeModal);
             
-            elements.saveBtn.addEventListener('click', () => {
-                elements.modalTitle.textContent = 'Backup Your Work Log';
-                elements.modalInstructions.textContent = 'To keep your log safe, copy this unique code and save it in a secure place like a notes app. You can use it later to restore all your entries.';
-                elements.modalTextarea.value = JSON.stringify(logs);
-                elements.modalAction.textContent = 'Copy Backup Code';
-                elements.modalBackdrop.style.display = 'flex';
-                elements.modalAction.onclick = () => {
-                    elements.modalTextarea.select();
-                    document.execCommand('copy');
-                    alert('Backup code copied to clipboard!');
-                    closeModal();
-                };
-            });
-
-            elements.loadBtn.addEventListener('click', () => {
-                elements.modalTitle.textContent = 'Restore Your Work Log';
-                elements.modalInstructions.textContent = 'Paste your previously saved backup code into the field below to restore your entire log history.';
-                elements.modalTextarea.value = '';
-                elements.modalAction.textContent = 'Restore From Code';
-                elements.modalBackdrop.style.display = 'flex';
-                elements.modalAction.onclick = () => {
-                    if (!elements.modalTextarea.value.trim()) { alert('Please paste your backup code into the text field.'); return; }
-                    try {
-                        const importedLogs = JSON.parse(elements.modalTextarea.value);
-                        if (Array.isArray(importedLogs)) {
-                            logs = importedLogs;
-                            renderLogs();
-                            alert('Log successfully restored!');
-                            closeModal();
-                        } else { throw new Error('Invalid format'); }
-                    } catch (err) { alert('Invalid backup code. Please check the code and try again.'); }
-                };
-            });
-
             elements.clearAllBtn.addEventListener('click', () => {
                 elements.modalTitle.textContent = 'Clear All Log Entries';
                 elements.modalInstructions.textContent = 'Are you sure you want to permanently delete all logs? This action cannot be undone.';
-                elements.modalTextarea.value = '';
-                elements.modalTextarea.style.display = 'none';
                 elements.modalAction.textContent = 'Yes, Delete All';
-                elements.modalAction.className = 'bg-red-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-700';
                 elements.modalBackdrop.style.display = 'flex';
                 elements.modalAction.onclick = () => {
-                    logs = [];
+                    logs = []; displayedLogs = [];
+                    saveLogs();
+                    populateYearFilter();
                     renderLogs();
                     closeModal();
                 };
             });
 
             elements.statusInput.addEventListener('change', handleStatusChange);
+
+            // --- App Initialization ---
+            loadLogs();
+            displayedLogs = [...logs];
             setCurrentDate();
+            elements.monthFilter.value = new Date().getMonth();
+            populateYearFilter();
             handleStatusChange();
             renderLogs();
             
-            // Register the Service Worker for PWA functionality
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('./sw.js')
-                        .then(registration => {
-                            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                        })
-                        .catch(error => {
-                            console.log('ServiceWorker registration failed: ', error);
-                        });
+                        .then(reg => console.log('ServiceWorker registration successful.'))
+                        .catch(err => console.log('ServiceWorker registration failed: ', err));
                 });
             }
         });
     </script>
 </body>
 </html>
-
 
