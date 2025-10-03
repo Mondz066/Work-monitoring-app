@@ -83,7 +83,7 @@
         </div>
 
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
-            <h2 class="text-xl font-bold mb-4 text-white">Work Hours Summary</h2>
+            <h2 class="text-xl font-bold mb-4 text-white">Summary</h2>
              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                  <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-green-400">Day Shift</p><p id="summary-day-shift" class="text-xl font-bold text-green-300">0.00</p></div>
                  <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-orange-400">Mid Shift</p><p id="summary-mid-shift" class="text-xl font-bold text-orange-300">0.00</p></div>
@@ -97,7 +97,7 @@
         </div>
         
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-6 border border-gray-700">
-            <h2 class="text-xl font-bold mb-4 text-white">Filter Log History</h2>
+            <h2 class="text-xl font-bold mb-4 text-white">View Log History</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -114,16 +114,15 @@
                         <select id="year-filter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md"></select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 self-end">
-                    <button id="apply-filter-btn" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-blue-700">Apply Filter</button>
-                    <button id="reset-filter-btn" class="w-full bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-gray-700">Show All</button>
+                <div class="self-end">
+                    <button id="apply-filter-btn" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-blue-700">View Month</button>
                 </div>
             </div>
         </div>
 
         <div>
             <div class="flex justify-between items-center mb-4">
-                 <h2 id="log-history-title" class="text-2xl font-bold text-white">Log History</h2>
+                 <h2 id="log-history-title" class="text-2xl font-bold text-white">Today's Log Entries</h2>
             </div>
             <div id="log-container" class="space-y-3">
                 <p id="empty-log-message" class="text-gray-400 text-center py-8 bg-gray-900 rounded-lg border border-gray-700">No entries yet.</p>
@@ -161,17 +160,16 @@
                 monthFilter: document.getElementById('month-filter'),
                 yearFilter: document.getElementById('year-filter'),
                 applyFilterBtn: document.getElementById('apply-filter-btn'),
-                resetFilterBtn: document.getElementById('reset-filter-btn'),
                 logHistoryTitle: document.getElementById('log-history-title')
             };
 
-            let logs = []; 
-            let displayedLogs = [];
-            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v2'; 
+            let allLogs = []; 
+            let currentlyDisplayedLogs = [];
+            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v3'; 
 
             const saveLogs = () => {
                 try {
-                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs));
+                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(allLogs));
                 } catch (error) {
                     console.error("Error saving logs to localStorage:", error);
                 }
@@ -180,21 +178,14 @@
             const loadLogs = () => {
                 try {
                     const savedLogs = localStorage.getItem(LOGS_STORAGE_KEY);
-                    if (savedLogs) {
-                        logs = JSON.parse(savedLogs);
-                    } else {
-                        logs = [];
-                    }
+                    allLogs = savedLogs ? JSON.parse(savedLogs) : [];
                 } catch (error) {
                     console.error("Error loading or parsing logs from localStorage:", error);
-                    logs = [];
+                    allLogs = [];
                 }
             };
 
-            const setCurrentDate = () => {
-                const now = new Date();
-                elements.dateInput.value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            };
+            const getTodayString = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             
             const calculateHours = (start, end) => {
                 const startTime = new Date(`1970-01-01T${start}:00`);
@@ -204,10 +195,10 @@
                 return Math.max(0, diff);
             };
 
-            const updateSummary = () => {
+            const updateSummary = (logsToSummarize) => {
                 let dayHours = 0, midHours = 0, nightHours = 0, overtimeHours = 0, specialHolidayHours = 0, legalHolidayHours = 0;
                 
-                displayedLogs.forEach(log => {
+                logsToSummarize.forEach(log => {
                     if (log.status === 'Present') {
                         overtimeHours += log.overtimeHours || 0;
                         const regularHours = log.regularHours || 0;
@@ -229,7 +220,7 @@
                 elements.summarySpecialHoliday.textContent = specialHolidayHours.toFixed(2);
                 elements.summaryLegalHoliday.textContent = legalHolidayHours.toFixed(2);
                 
-                const dayCounts = displayedLogs.reduce((acc, log) => {
+                const dayCounts = logsToSummarize.reduce((acc, log) => {
                     switch(log.status) {
                         case 'Present': acc['Present'] = (acc['Present'] || 0) + 1; break;
                         case 'Special Holiday (130%)': acc['Present'] = (acc['Present'] || 0) + 1; break;
@@ -258,16 +249,23 @@
                 return statuses[status] ? `<span class="${c} ${statuses[status]}">${status}</span>` : '';
             };
 
-            const renderLogs = () => {
-                elements.logContainer.innerHTML = ''; 
-                if (displayedLogs.length === 0) {
-                    elements.emptyLogMessage.textContent = logs.length === 0 ? "No entries yet." : "No entries found for this period.";
+            const renderLogs = (logsToRender) => {
+                elements.logContainer.innerHTML = '';
+                
+                if (logsToRender.length === 0) {
+                    if (allLogs.length === 0) {
+                        elements.emptyLogMessage.textContent = "No entries yet. Add one above to get started!";
+                    } else if (elements.logHistoryTitle.textContent.includes("Today")) {
+                        elements.emptyLogMessage.textContent = "No entries logged for today.";
+                    } else {
+                        elements.emptyLogMessage.textContent = "No entries found for this period.";
+                    }
                     elements.emptyLogMessage.style.display = 'block';
                 } else {
                     elements.emptyLogMessage.style.display = 'none';
                 }
                 
-                displayedLogs.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
+                logsToRender.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
                     const el = document.createElement('div');
                     el.className = 'bg-gray-900 rounded-lg shadow-sm p-4 flex items-center justify-between new-entry border border-gray-700';
                     const dayOfWeek = new Date(log.date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short' });
@@ -296,7 +294,7 @@
                     el.innerHTML = `<div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div></div><button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full flex-shrink-0"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
                     elements.logContainer.appendChild(el);
                 });
-                updateSummary();
+                updateSummary(logsToRender);
             };
 
             const handleStatusChange = () => {
@@ -308,10 +306,17 @@
 
             const populateYearFilter = () => {
                 const currentYear = new Date().getFullYear();
-                const years = [...new Set(logs.map(log => new Date(log.date).getFullYear()))];
+                const years = [...new Set(allLogs.map(log => new Date(log.date).getFullYear()))];
                 if (!years.includes(currentYear)) years.push(currentYear);
                 years.sort((a,b) => b-a);
                 elements.yearFilter.innerHTML = years.map(year => `<option value="${year}">${year}</option>`).join('');
+            };
+
+            const displayTodaysLogs = () => {
+                const today = getTodayString();
+                currentlyDisplayedLogs = allLogs.filter(log => log.date === today);
+                elements.logHistoryTitle.textContent = "Today's Log Entries";
+                renderLogs(currentlyDisplayedLogs);
             };
             
             elements.logForm.addEventListener('submit', (e) => {
@@ -329,26 +334,22 @@
                     newLog.regularHours = Math.min(totalHours, 8);
                     newLog.overtimeHours = Math.max(0, totalHours - 8);
                 }
-                logs.push(newLog);
+                allLogs.push(newLog);
                 saveLogs();
-                displayedLogs = [...logs];
-                elements.logHistoryTitle.textContent = "Log History";
                 populateYearFilter();
-                renderLogs();
+                displayTodaysLogs();
                 elements.logForm.reset();
-                setCurrentDate(); 
+                elements.dateInput.value = getTodayString();
                 handleStatusChange();
             });
 
             elements.logContainer.addEventListener('click', (e) => {
                 const btn = e.target.closest('.delete-btn');
                 if (btn) {
-                    logs = logs.filter(log => log.id !== parseInt(btn.dataset.id));
+                    allLogs = allLogs.filter(log => log.id !== parseInt(btn.dataset.id));
                     saveLogs();
-                    displayedLogs = [...logs];
-                    elements.logHistoryTitle.textContent = "Log History";
                     populateYearFilter();
-                    renderLogs();
+                    displayTodaysLogs();
                 }
             });
 
@@ -356,22 +357,17 @@
                 const month = parseInt(elements.monthFilter.value);
                 const year = parseInt(elements.yearFilter.value);
                 if (isNaN(year)) {
-                    displayedLogs = [];
+                    currentlyDisplayedLogs = [];
                 } else {
-                    displayedLogs = logs.filter(log => {
+                    currentlyDisplayedLogs = allLogs.filter(log => {
                         const logDate = new Date(log.date + 'T00:00:00');
                         return logDate.getMonth() === month && logDate.getFullYear() === year;
                     });
                 }
                 const monthName = elements.monthFilter.options[elements.monthFilter.selectedIndex].text;
                 elements.logHistoryTitle.textContent = `Log History (${monthName} ${year || ''})`;
-                renderLogs();
-            });
-
-            elements.resetFilterBtn.addEventListener('click', () => {
-                displayedLogs = [...logs];
-                elements.logHistoryTitle.textContent = "Log History";
-                renderLogs();
+                renderLogs(currentlyDisplayedLogs);
+                updateSummary(currentlyDisplayedLogs);
             });
             
             const closeModal = () => elements.modalBackdrop.style.display = 'none';
@@ -383,10 +379,10 @@
                 elements.modalAction.textContent = 'Yes, Delete All';
                 elements.modalBackdrop.style.display = 'flex';
                 elements.modalAction.onclick = () => {
-                    logs = []; displayedLogs = [];
+                    allLogs = []; currentlyDisplayedLogs = [];
                     saveLogs();
                     populateYearFilter();
-                    renderLogs();
+                    displayTodaysLogs();
                     closeModal();
                 };
             });
@@ -395,12 +391,11 @@
 
             // --- App Initialization ---
             loadLogs();
-            displayedLogs = [...logs];
-            setCurrentDate();
+            elements.dateInput.value = getTodayString();
             elements.monthFilter.value = new Date().getMonth();
             populateYearFilter();
             handleStatusChange();
-            renderLogs();
+            displayTodaysLogs();
             
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
