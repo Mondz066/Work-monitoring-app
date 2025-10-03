@@ -1,0 +1,392 @@
+head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Monitoring App</title>
+    <!-- PWA Manifest Link -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Theme color for browser UI -->
+    <meta name="theme-color" content="#111827">
+    <!-- Apple-specific meta tags for PWA -->
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/8b5cf6/ffffff?text=W">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Work Monitor">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .new-entry { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .summary-box { display: flex; flex-direction: column; justify-content: center; min-height: 90px; text-align: center; }
+        #modal-backdrop { background-color: rgba(0,0,0,0.7); }
+    </style>
+</head>
+<body class="bg-black text-gray-200">
+
+    <div class="container mx-auto max-w-2xl p-4 sm:p-6">
+        
+        <header class="text-center my-6">
+            <h1 class="text-3xl font-bold text-white">Work Monitoring Dashboard</h1>
+            <p class="text-gray-400 mt-1">Track your shifts, holidays, and work hours effortlessly.</p>
+        </header>
+
+        <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
+            <form id="log-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-300 mb-1">Date</label>
+                        <input type="date" id="date" name="date" required class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                    </div>
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-300 mb-1">Status</label>
+                        <select id="status" name="status" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            <option value="Present">Present (Work Day)</option>
+                            <option value="Special Holiday (130%)">Special Holiday (130%)</option>
+                            <option value="Legal Holiday (200%)">Legal Holiday (200%)</option>
+                            <option value="Legal/Special Holiday no work">Legal/Special Holiday no work</option>
+                            <option value="Rest Day">Rest Day</option>
+                            <option value="Sick Leave">Sick Leave</option>
+                            <option value="Leave">Leave (Vacation)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="present-details" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="start-time" class="block text-sm font-medium text-gray-300 mb-1">Start Time</label>
+                        <input type="time" id="start-time" name="start-time" value="06:00" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                    </div>
+                    <div>
+                        <label for="end-time" class="block text-sm font-medium text-gray-300 mb-1">End Time</label>
+                        <input type="time" id="end-time" name="end-time" value="14:00" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Add Log Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 text-white">Data Management</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <button id="save-btn" class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-blue-700">Backup Log...</button>
+                 <button id="load-btn" class="w-full bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-gray-700">Restore Log...</button>
+                 <button id="clear-all-btn" class="w-full bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-700">Clear All...</button>
+            </div>
+        </div>
+
+        <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 text-white">Work Hours Summary</h2>
+             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-green-400">Day Shift</p><p id="summary-day-shift" class="text-xl font-bold text-green-300">0.00</p></div>
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-orange-400">Mid Shift</p><p id="summary-mid-shift" class="text-xl font-bold text-orange-300">0.00</p></div>
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-blue-400">Night Shift</p><p id="summary-night-shift" class="text-xl font-bold text-blue-300">0.00</p></div>
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-cyan-400">Overtime</p><p id="summary-overtime-hours" class="text-xl font-bold text-cyan-300">0.00</p></div>
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-yellow-400">Special Hol. (130%)</p><p id="summary-special-holiday" class="text-xl font-bold text-yellow-300">0.00</p></div>
+                 <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs font-semibold text-red-400">Legal Hol. (200%)</p><p id="summary-legal-holiday" class="text-xl font-bold text-red-300">0.00</p></div>
+            </div>
+            <h2 class="text-xl font-bold mb-4 mt-6 text-white">Days Summary</h2>
+            <div id="summary-days-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+        </div>
+
+        <div>
+            <div class="flex justify-between items-center mb-4">
+                 <h2 class="text-2xl font-bold text-white">Log History</h2>
+            </div>
+            <div id="log-container" class="space-y-3">
+                <p id="empty-log-message" class="text-gray-400 text-center py-8 bg-gray-900 rounded-lg border border-gray-700">No entries yet.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-backdrop" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div id="modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-white"></h3>
+            <p id="modal-instructions" class="text-sm text-gray-400 mb-2"></p>
+            <textarea id="modal-textarea" class="w-full h-40 p-2 bg-gray-700 border border-gray-600 rounded-md text-white"></textarea>
+            <div class="mt-4 flex justify-end gap-3">
+                <button id="modal-cancel" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Cancel</button>
+                <button id="modal-action" class="bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = {
+                logForm: document.getElementById('log-form'), dateInput: document.getElementById('date'),
+                statusInput: document.getElementById('status'), presentDetails: document.getElementById('present-details'),
+                startTimeInput: document.getElementById('start-time'), endTimeInput: document.getElementById('end-time'),
+                logContainer: document.getElementById('log-container'), emptyLogMessage: document.getElementById('empty-log-message'),
+                summaryDaysContainer: document.getElementById('summary-days-container'),
+                summaryDayShift: document.getElementById('summary-day-shift'), summaryMidShift: document.getElementById('summary-mid-shift'),
+                summaryNightShift: document.getElementById('summary-night-shift'), summaryOvertime: document.getElementById('summary-overtime-hours'),
+                summarySpecialHoliday: document.getElementById('summary-special-holiday'), summaryLegalHoliday: document.getElementById('summary-legal-holiday'),
+                saveBtn: document.getElementById('save-btn'),
+                loadBtn: document.getElementById('load-btn'),
+                clearAllBtn: document.getElementById('clear-all-btn'),
+                modalBackdrop: document.getElementById('modal-backdrop'),
+                modalTitle: document.getElementById('modal-title'), modalInstructions: document.getElementById('modal-instructions'),
+                modalTextarea: document.getElementById('modal-textarea'), modalCancel: document.getElementById('modal-cancel'),
+                modalAction: document.getElementById('modal-action')
+            };
+
+            let logs = [];
+
+            const setCurrentDate = () => {
+                const now = new Date();
+                elements.dateInput.value = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            };
+            
+            const calculateHours = (start, end) => {
+                const startTime = new Date(`1970-01-01T${start}:00`);
+                const endTime = new Date(`1970-01-01T${end}:00`);
+                let diff = (endTime - startTime) / 3600000;
+                if (diff < 0) diff += 24;
+                return Math.max(0, diff);
+            };
+
+            const updateSummary = () => {
+                let dayHours = 0, midHours = 0, nightHours = 0, overtimeHours = 0, specialHolidayHours = 0, legalHolidayHours = 0;
+                
+                logs.forEach(log => {
+                    if (log.status === 'Present') {
+                        overtimeHours += log.overtimeHours || 0;
+                        const regularHours = log.regularHours || 0;
+                        const startHour = parseInt(log.startTime.split(':')[0]);
+                        if (startHour >= 18 || startHour < 6) nightHours += regularHours;
+                        else if (startHour >= 14 && startHour < 18) midHours += regularHours;
+                        else dayHours += regularHours;
+                    } else if (log.status === 'Special Holiday (130%)') {
+                        specialHolidayHours += (log.regularHours || 0) + (log.overtimeHours || 0);
+                    } else if (log.status === 'Legal Holiday (200%)') {
+                        legalHolidayHours += (log.regularHours || 0) + (log.overtimeHours || 0);
+                    }
+                });
+
+                elements.summaryDayShift.textContent = dayHours.toFixed(2);
+                elements.summaryMidShift.textContent = midHours.toFixed(2);
+                elements.summaryNightShift.textContent = nightHours.toFixed(2);
+                elements.summaryOvertime.textContent = overtimeHours.toFixed(2);
+                elements.summarySpecialHoliday.textContent = specialHolidayHours.toFixed(2);
+                elements.summaryLegalHoliday.textContent = legalHolidayHours.toFixed(2);
+                
+                const dayCounts = logs.reduce((acc, log) => {
+                    switch(log.status) {
+                        case 'Present':
+                            acc['Present'] = (acc['Present'] || 0) + 1;
+                            break;
+                        case 'Special Holiday (130%)':
+                            acc['Present'] = (acc['Present'] || 0) + 1;
+                            break;
+                        case 'Legal Holiday (200%)':
+                            acc['Present'] = (acc['Present'] || 0) + 1;
+                            acc['HolidayWithWork'] = (acc['HolidayWithWork'] || 0) + 1;
+                            break;
+                        case 'Legal/Special Holiday no work':
+                            acc['Holiday'] = (acc['Holiday'] || 0) + 1;
+                            break;
+                        default:
+                            acc[log.status] = (acc[log.status] || 0) + 1;
+                            break;
+                    }
+                    return acc;
+                }, {});
+
+                elements.summaryDaysContainer.innerHTML = `
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-green-400">Work Days</p><p class="text-xl font-bold text-green-300">${dayCounts['Present'] || 0}</p></div>
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-orange-400">Holiday w/work</p><p class="text-xl font-bold text-orange-300">${dayCounts['HolidayWithWork'] || 0}</p></div>
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-purple-400">Holidays (no work)</p><p class="text-xl font-bold text-purple-300">${dayCounts['Holiday'] || 0}</p></div>
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-blue-400">On Leave</p><p class="text-xl font-bold text-blue-300">${dayCounts['Leave'] || 0}</p></div>
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-yellow-400">Sick Days</p><p class="text-xl font-bold text-yellow-300">${dayCounts['Sick Leave'] || 0}</p></div>
+                    <div class="summary-box bg-gray-800 p-2 rounded-lg"><p class="text-xs text-gray-400">Rest Days</p><p class="text-xl font-bold text-gray-300">${dayCounts['Rest Day'] || 0}</p></div>`;
+            };
+            
+            const getStatusBadge = (status) => {
+                const c = "text-xs font-medium px-2.5 py-1 rounded-full";
+                const statuses = {
+                    'Sick Leave': `bg-yellow-900/50 text-yellow-300`, 'Leave': `bg-blue-900/50 text-blue-300`,
+                    'Rest Day': `bg-gray-700 text-gray-300`
+                };
+                return statuses[status] ? `<span class="${c} ${statuses[status]}">${status}</span>` : '';
+            };
+
+            const renderLogs = () => {
+                elements.logContainer.innerHTML = ''; 
+                elements.emptyLogMessage.style.display = logs.length === 0 ? 'block' : 'none';
+                
+                logs.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
+                    const el = document.createElement('div');
+                    el.className = 'bg-gray-900 rounded-lg shadow-sm p-4 flex items-center justify-between new-entry border border-gray-700';
+                    const dayOfWeek = new Date(log.date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short' });
+                    
+                    let detailsHtml = '';
+                    const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(log.status);
+
+                    if (isWorkEntry) {
+                        const totalHours = (log.regularHours || 0) + (log.overtimeHours || 0);
+                        let breakdown = `(${log.regularHours.toFixed(2)} Reg`;
+                        if (log.overtimeHours > 0) breakdown += ` + ${log.overtimeHours.toFixed(2)} OT`;
+                        breakdown += ')';
+                        
+                        let badge = '';
+                        if(log.status === 'Legal Holiday (200%)') badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-900/50 text-red-300">LEGAL 200%</span>`;
+                        else if (log.status === 'Special Holiday (130%)') badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-yellow-900/50 text-yellow-300">SPECIAL 130%</span>`;
+                        else {
+                             const startHour = parseInt(log.startTime.split(':')[0]);
+                             if (startHour >= 18 || startHour < 6) badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-900/50 text-blue-300">NIGHT</span>`;
+                             else if (startHour >= 14 && startHour < 18) badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-900/50 text-orange-300">MID</span>`;
+                             else badge = `<span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-900/50 text-green-300">DAY</span>`;
+                        }
+                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1">
+                                         <span class="text-sm text-gray-400">${log.startTime} - ${log.endTime}</span>
+                                         <span class="text-lg text-green-400 font-semibold">${totalHours.toFixed(2)} hrs</span>
+                                         <span class="text-xs text-gray-500">${breakdown}</span>
+                                         ${badge}
+                                       </div>`;
+                    } else if (log.status === 'Legal/Special Holiday no work') {
+                        detailsHtml = `<div class="flex items-center flex-wrap gap-x-3 gap-y-1">
+                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-900/50 text-purple-300">PAID HOLIDAY</span>
+                                       </div>`;
+                    }
+                    else { 
+                        detailsHtml = getStatusBadge(log.status); 
+                    }
+                    
+                    el.innerHTML = `
+                        <div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div></div>
+                        <button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full flex-shrink-0"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
+                    elements.logContainer.appendChild(el);
+                });
+                updateSummary();
+            };
+
+            const handleStatusChange = () => {
+                const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(elements.statusInput.value);
+                elements.presentDetails.style.display = isWorkEntry ? 'grid' : 'none';
+                elements.startTimeInput.required = isWorkEntry;
+                elements.endTimeInput.required = isWorkEntry;
+            };
+            
+            elements.logForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newLog = { 
+                    id: Date.now(), date: elements.dateInput.value, status: elements.statusInput.value, 
+                    startTime: elements.startTimeInput.value, endTime: elements.endTimeInput.value,
+                    regularHours: 0, overtimeHours: 0
+                };
+                
+                const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(newLog.status);
+                
+                if (newLog.status === 'Legal/Special Holiday no work') {
+                    newLog.regularHours = 0;
+                    newLog.overtimeHours = 0;
+                } else if (isWorkEntry) {
+                    if (!newLog.startTime || !newLog.endTime) { alert('Please fill in both Start and End Time.'); return; }
+                    const totalHours = calculateHours(newLog.startTime, newLog.endTime);
+                    newLog.regularHours = Math.min(totalHours, 8);
+                    newLog.overtimeHours = Math.max(0, totalHours - 8);
+                }
+                logs.push(newLog);
+                renderLogs();
+                elements.logForm.reset();
+                setCurrentDate(); 
+                handleStatusChange();
+            });
+
+            elements.logContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('.delete-btn');
+                if (btn) {
+                    logs = logs.filter(log => log.id !== parseInt(btn.dataset.id));
+                    renderLogs();
+                }
+            });
+            
+            const resetModalStyles = () => {
+                elements.modalTextarea.style.display = 'block';
+                elements.modalAction.className = 'bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700';
+            };
+
+            const closeModal = () => {
+                elements.modalBackdrop.style.display = 'none';
+                resetModalStyles();
+            };
+            elements.modalCancel.addEventListener('click', closeModal);
+            
+            elements.saveBtn.addEventListener('click', () => {
+                elements.modalTitle.textContent = 'Backup Your Work Log';
+                elements.modalInstructions.textContent = 'To keep your log safe, copy this unique code and save it in a secure place like a notes app. You can use it later to restore all your entries.';
+                elements.modalTextarea.value = JSON.stringify(logs);
+                elements.modalAction.textContent = 'Copy Backup Code';
+                elements.modalBackdrop.style.display = 'flex';
+                elements.modalAction.onclick = () => {
+                    elements.modalTextarea.select();
+                    document.execCommand('copy');
+                    alert('Backup code copied to clipboard!');
+                    closeModal();
+                };
+            });
+
+            elements.loadBtn.addEventListener('click', () => {
+                elements.modalTitle.textContent = 'Restore Your Work Log';
+                elements.modalInstructions.textContent = 'Paste your previously saved backup code into the field below to restore your entire log history.';
+                elements.modalTextarea.value = '';
+                elements.modalAction.textContent = 'Restore From Code';
+                elements.modalBackdrop.style.display = 'flex';
+                elements.modalAction.onclick = () => {
+                    if (!elements.modalTextarea.value.trim()) { alert('Please paste your backup code into the text field.'); return; }
+                    try {
+                        const importedLogs = JSON.parse(elements.modalTextarea.value);
+                        if (Array.isArray(importedLogs)) {
+                            logs = importedLogs;
+                            renderLogs();
+                            alert('Log successfully restored!');
+                            closeModal();
+                        } else { throw new Error('Invalid format'); }
+                    } catch (err) { alert('Invalid backup code. Please check the code and try again.'); }
+                };
+            });
+
+            elements.clearAllBtn.addEventListener('click', () => {
+                elements.modalTitle.textContent = 'Clear All Log Entries';
+                elements.modalInstructions.textContent = 'Are you sure you want to permanently delete all logs? This action cannot be undone.';
+                elements.modalTextarea.value = '';
+                elements.modalTextarea.style.display = 'none';
+                elements.modalAction.textContent = 'Yes, Delete All';
+                elements.modalAction.className = 'bg-red-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-700';
+                elements.modalBackdrop.style.display = 'flex';
+                elements.modalAction.onclick = () => {
+                    logs = [];
+                    renderLogs();
+                    closeModal();
+                };
+            });
+
+            elements.statusInput.addEventListener('change', handleStatusChange);
+            setCurrentDate();
+            handleStatusChange();
+            renderLogs();
+        });
+
+        // Register the Service Worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+
+￼
