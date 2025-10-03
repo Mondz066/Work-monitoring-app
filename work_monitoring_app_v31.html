@@ -23,7 +23,7 @@
         .new-entry { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .summary-box { display: flex; flex-direction: column; justify-content: center; min-height: 90px; text-align: center; }
-        #modal-backdrop { background-color: rgba(0,0,0,0.7); }
+        .modal-backdrop { background-color: rgba(0,0,0,0.7); }
     </style>
 </head>
 <body class="bg-black text-gray-200">
@@ -67,6 +67,11 @@
                     </div>
                 </div>
 
+                <div class="mt-4">
+                    <label for="notes" class="block text-sm font-medium text-gray-300 mb-1">Notes (Optional)</label>
+                    <textarea id="notes" name="notes" rows="2" class="w-full p-2 bg-gray-800 border border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white" placeholder="e.g., Worked on project X..."></textarea>
+                </div>
+
                 <div class="mt-6">
                     <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                         Add Log Entry
@@ -78,7 +83,7 @@
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-8 border border-gray-700">
             <h2 class="text-xl font-bold mb-4 text-white">Data Management</h2>
             <div class="flex justify-center">
-                 <button id="clear-all-btn" class="w-full sm:w-1/2 bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-700">Clear All Log Data...</button>
+                 <button id="manage-data-btn" class="w-full sm:w-1/2 bg-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-gray-500">Manage Log Data...</button>
             </div>
         </div>
 
@@ -130,13 +135,86 @@
         </div>
     </div>
     
-    <div id="modal-backdrop" class="fixed inset-0 hidden items-center justify-center z-50">
-        <div id="modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
-            <h3 id="modal-title" class="text-xl font-bold mb-4 text-white"></h3>
-            <p id="modal-instructions" class="text-sm text-gray-400 mb-2"></p>
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal-backdrop" class="fixed inset-0 hidden items-center justify-center z-50 modal-backdrop">
+        <div id="confirm-modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
+            <h3 id="confirm-modal-title" class="text-xl font-bold mb-4 text-white"></h3>
+            <p id="confirm-modal-text" class="text-sm text-gray-400 mb-2"></p>
             <div class="mt-4 flex justify-end gap-3">
-                <button id="modal-cancel" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Cancel</button>
-                <button id="modal-action" class="bg-red-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-700"></button>
+                <button id="confirm-modal-cancel" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Cancel</button>
+                <button id="confirm-modal-action" class="bg-red-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-red-700"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal-backdrop" class="fixed inset-0 hidden items-center justify-center z-50 modal-backdrop">
+        <div id="edit-modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
+            <h3 class="text-xl font-bold mb-6 text-white">Edit Log Entry</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-log-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="edit-date" class="block text-sm font-medium text-gray-300 mb-1">Date</label>
+                        <input type="date" id="edit-date" required class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white">
+                    </div>
+                    <div>
+                        <label for="edit-status" class="block text-sm font-medium text-gray-300 mb-1">Status</label>
+                        <select id="edit-status" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white">
+                            <option value="Present">Present</option><option value="Special Holiday (130%)">Special Holiday (130%)</option><option value="Legal Holiday (200%)">Legal Holiday (200%)</option><option value="Legal/Special Holiday no work">Legal/Special Holiday no work</option><option value="Rest Day">Rest Day</option><option value="Sick Leave">Sick Leave</option><option value="Leave">Leave</option>
+                        </select>
+                    </div>
+                </div>
+                 <div id="edit-present-details" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="edit-start-time" class="block text-sm font-medium text-gray-300 mb-1">Start Time</label>
+                        <input type="time" id="edit-start-time" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white">
+                    </div>
+                    <div>
+                        <label for="edit-end-time" class="block text-sm font-medium text-gray-300 mb-1">End Time</label>
+                        <input type="time" id="edit-end-time" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="edit-notes" class="block text-sm font-medium text-gray-300 mb-1">Notes</label>
+                    <textarea id="edit-notes" rows="3" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"></textarea>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="edit-modal-cancel" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Cancel</button>
+                    <button type="submit" class="bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Data Management Modal -->
+    <div id="manage-data-modal-backdrop" class="fixed inset-0 hidden items-center justify-center z-50 modal-backdrop">
+        <div id="manage-data-modal" class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-11/12 max-w-lg mx-auto">
+            <h3 class="text-xl font-bold mb-6 text-white">Data Management</h3>
+            
+            <div class="space-y-6">
+                <!-- Delete by Month -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-200 mb-3">Delete a Specific Month</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <select id="delete-month-select" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md"></select>
+                        <select id="delete-year-select" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md"></select>
+                        <button id="delete-month-btn" class="w-full bg-red-700/80 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-700">Delete Month</button>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-600"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-gray-800 text-gray-400">or</span></div></div>
+                
+                <!-- Delete All Data -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-200 mb-3">Delete All Data</h4>
+                    <button id="delete-all-btn" class="w-full bg-red-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-red-500">Wipe All Log Data...</button>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button type="button" id="manage-data-close-btn" class="bg-gray-600 text-gray-200 font-medium py-2 px-4 rounded-lg hover:bg-gray-500">Close</button>
             </div>
         </div>
     </div>
@@ -144,34 +222,49 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const elements = {
+                // Main form
                 logForm: document.getElementById('log-form'), dateInput: document.getElementById('date'),
                 statusInput: document.getElementById('status'), presentDetails: document.getElementById('present-details'),
                 startTimeInput: document.getElementById('start-time'), endTimeInput: document.getElementById('end-time'),
+                notesInput: document.getElementById('notes'),
+                // Log display
                 logContainer: document.getElementById('log-container'), emptyLogMessage: document.getElementById('empty-log-message'),
+                logHistoryTitle: document.getElementById('log-history-title'),
+                // Summaries
                 summaryDaysContainer: document.getElementById('summary-days-container'),
                 summaryDayShift: document.getElementById('summary-day-shift'), summaryMidShift: document.getElementById('summary-mid-shift'),
                 summaryNightShift: document.getElementById('summary-night-shift'), summaryOvertime: document.getElementById('summary-overtime-hours'),
                 summarySpecialHoliday: document.getElementById('summary-special-holiday'), summaryLegalHoliday: document.getElementById('summary-legal-holiday'),
-                clearAllBtn: document.getElementById('clear-all-btn'),
-                modalBackdrop: document.getElementById('modal-backdrop'),
-                modalTitle: document.getElementById('modal-title'), modalInstructions: document.getElementById('modal-instructions'),
-                modalCancel: document.getElementById('modal-cancel'),
-                modalAction: document.getElementById('modal-action'),
-                monthFilter: document.getElementById('month-filter'),
-                yearFilter: document.getElementById('year-filter'),
+                // Data Management
+                manageDataBtn: document.getElementById('manage-data-btn'),
+                // Confirmation Modal
+                confirmModalBackdrop: document.getElementById('confirm-modal-backdrop'),
+                confirmModalTitle: document.getElementById('confirm-modal-title'), confirmModalText: document.getElementById('confirm-modal-text'),
+                confirmModalCancel: document.getElementById('confirm-modal-cancel'), confirmModalAction: document.getElementById('confirm-modal-action'),
+                // Edit Modal
+                editModalBackdrop: document.getElementById('edit-modal-backdrop'), editForm: document.getElementById('edit-form'),
+                editLogId: document.getElementById('edit-log-id'), editDate: document.getElementById('edit-date'),
+                editStatus: document.getElementById('edit-status'), editPresentDetails: document.getElementById('edit-present-details'),
+                editStartTime: document.getElementById('edit-start-time'), editEndTime: document.getElementById('edit-end-time'),
+                editNotes: document.getElementById('edit-notes'), editModalCancel: document.getElementById('edit-modal-cancel'),
+                // Filters
+                monthFilter: document.getElementById('month-filter'), yearFilter: document.getElementById('year-filter'),
                 applyFilterBtn: document.getElementById('apply-filter-btn'),
-                logHistoryTitle: document.getElementById('log-history-title')
+                // Data Management Modal
+                manageDataModalBackdrop: document.getElementById('manage-data-modal-backdrop'),
+                deleteMonthSelect: document.getElementById('delete-month-select'),
+                deleteYearSelect: document.getElementById('delete-year-select'),
+                deleteMonthBtn: document.getElementById('delete-month-btn'),
+                deleteAllBtn: document.getElementById('delete-all-btn'),
+                manageDataCloseBtn: document.getElementById('manage-data-close-btn'),
             };
 
             let allLogs = []; 
-            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v4'; 
+            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v6'; 
 
             const saveLogs = () => {
-                try {
-                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(allLogs));
-                } catch (error) {
-                    console.error("Error saving logs to localStorage:", error);
-                }
+                try { localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(allLogs)); } 
+                catch (error) { console.error("Error saving logs:", error); }
             };
 
             const loadLogs = () => {
@@ -179,7 +272,7 @@
                     const savedLogs = localStorage.getItem(LOGS_STORAGE_KEY);
                     allLogs = savedLogs ? JSON.parse(savedLogs) : [];
                 } catch (error) {
-                    console.error("Error loading or parsing logs from localStorage:", error);
+                    console.error("Error loading logs:", error);
                     allLogs = [];
                 }
             };
@@ -250,7 +343,6 @@
 
             const renderLogs = (logsToRender) => {
                 elements.logContainer.innerHTML = '';
-                
                 if (logsToRender.length === 0) {
                      if (allLogs.length === 0) {
                         elements.emptyLogMessage.textContent = "No entries yet. Add one above to get started!";
@@ -266,9 +358,9 @@
                 
                 logsToRender.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(log => {
                     const el = document.createElement('div');
-                    el.className = 'bg-gray-900 rounded-lg shadow-sm p-4 flex items-center justify-between new-entry border border-gray-700';
+                    el.className = 'bg-gray-900 rounded-lg shadow-sm p-4 new-entry border border-gray-700';
                     const dayOfWeek = new Date(log.date + 'T00:00:00').toLocaleString('en-US', { weekday: 'short' });
-                    let detailsHtml = '';
+                    let detailsHtml = '', notesHtml = '';
                     const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(log.status);
                     if (isWorkEntry) {
                         const totalHours = (log.regularHours || 0) + (log.overtimeHours || 0);
@@ -290,25 +382,28 @@
                     } else { 
                         detailsHtml = getStatusBadge(log.status); 
                     }
-                    el.innerHTML = `<div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div></div><button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full flex-shrink-0"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
+                    if (log.notes) {
+                        notesHtml = `<p class="text-sm text-gray-400 mt-2 pl-1 border-l-2 border-gray-700 ml-1">${log.notes.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    el.innerHTML = `<div class="flex items-start justify-between"><div class="flex-grow"><div class="flex items-baseline gap-3"><p class="font-semibold text-gray-100">${log.date}</p><p class="text-sm text-gray-400">${dayOfWeek}</p></div><div class="mt-1">${detailsHtml}</div>${notesHtml}</div><div class="flex-shrink-0 flex items-center gap-1"><button data-id="${log.id}" class="edit-btn text-gray-500 hover:text-blue-500 p-2 rounded-full"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/></svg></button><button data-id="${log.id}" class="delete-btn text-gray-500 hover:text-red-500 p-2 rounded-full"><svg class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>`;
                     elements.logContainer.appendChild(el);
                 });
                 updateSummary(logsToRender);
             };
 
-            const handleStatusChange = () => {
-                const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(elements.statusInput.value);
-                elements.presentDetails.style.display = isWorkEntry ? 'grid' : 'none';
-                elements.startTimeInput.required = isWorkEntry;
-                elements.endTimeInput.required = isWorkEntry;
+            const handleStatusChange = (status, detailsEl, startEl, endEl) => {
+                const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(status);
+                detailsEl.style.display = isWorkEntry ? 'grid' : 'none';
+                startEl.required = isWorkEntry;
+                endEl.required = isWorkEntry;
             };
 
-            const populateYearFilter = () => {
+            const populateYearFilter = (selectEl) => {
                 const currentYear = new Date().getFullYear();
                 const years = [...new Set(allLogs.map(log => new Date(log.date).getFullYear()))];
                 if (!years.includes(currentYear)) years.push(currentYear);
                 years.sort((a,b) => b-a);
-                elements.yearFilter.innerHTML = years.map(year => `<option value="${year}">${year}</option>`).join('');
+                selectEl.innerHTML = years.map(year => `<option value="${year}">${year}</option>`).join('');
             };
 
             const displayCurrentMonthLogs = () => {
@@ -331,32 +426,73 @@
                 const newLog = { 
                     id: Date.now(), date: elements.dateInput.value, status: elements.statusInput.value, 
                     startTime: elements.startTimeInput.value, endTime: elements.endTimeInput.value,
-                    regularHours: 0, overtimeHours: 0
+                    notes: elements.notesInput.value.trim(), regularHours: 0, overtimeHours: 0
                 };
                 const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(newLog.status);
-                if (newLog.status === 'Legal/Special Holiday no work') {
-                    newLog.regularHours = 0; newLog.overtimeHours = 0;
-                } else if (isWorkEntry) {
+                if (isWorkEntry) {
                     const totalHours = calculateHours(newLog.startTime, newLog.endTime);
                     newLog.regularHours = Math.min(totalHours, 8);
                     newLog.overtimeHours = Math.max(0, totalHours - 8);
                 }
                 allLogs.push(newLog);
                 saveLogs();
-                populateYearFilter();
+                populateYearFilter(elements.yearFilter);
                 displayCurrentMonthLogs();
                 elements.logForm.reset();
                 elements.dateInput.value = getTodayString();
-                handleStatusChange();
+                handleStatusChange(elements.statusInput.value, elements.presentDetails, elements.startTimeInput, elements.endTimeInput);
             });
 
             elements.logContainer.addEventListener('click', (e) => {
-                const btn = e.target.closest('.delete-btn');
-                if (btn) {
-                    allLogs = allLogs.filter(log => log.id !== parseInt(btn.dataset.id));
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn) {
+                    const logId = parseInt(deleteBtn.dataset.id);
+                    elements.confirmModalTitle.textContent = 'Delete Log Entry';
+                    elements.confirmModalText.textContent = 'Are you sure you want to permanently delete this log entry?';
+                    elements.confirmModalAction.textContent = 'Delete';
+                    elements.confirmModalBackdrop.style.display = 'flex';
+                    elements.confirmModalAction.onclick = () => {
+                        allLogs = allLogs.filter(log => log.id !== logId);
+                        saveLogs();
+                        populateYearFilter(elements.yearFilter);
+                        displayCurrentMonthLogs();
+                        elements.confirmModalBackdrop.style.display = 'none';
+                    };
+                }
+
+                const editBtn = e.target.closest('.edit-btn');
+                if (editBtn) {
+                    const logId = parseInt(editBtn.dataset.id);
+                    const logToEdit = allLogs.find(log => log.id === logId);
+                    if (logToEdit) {
+                        elements.editLogId.value = logToEdit.id;
+                        elements.editDate.value = logToEdit.date;
+                        elements.editStatus.value = logToEdit.status;
+                        elements.editStartTime.value = logToEdit.startTime || '';
+                        elements.editEndTime.value = logToEdit.endTime || '';
+                        elements.editNotes.value = logToEdit.notes || '';
+                        handleStatusChange(logToEdit.status, elements.editPresentDetails, elements.editStartTime, elements.editEndTime);
+                        elements.editModalBackdrop.style.display = 'flex';
+                    }
+                }
+            });
+
+            elements.editForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const logId = parseInt(elements.editLogId.value);
+                const logIndex = allLogs.findIndex(log => log.id === logId);
+                if (logIndex > -1) {
+                    const updatedLog = { ...allLogs[logIndex], date: elements.editDate.value, status: elements.editStatus.value, startTime: elements.editStartTime.value, endTime: elements.editEndTime.value, notes: elements.editNotes.value.trim() };
+                    const isWorkEntry = ['Present', 'Legal Holiday (200%)', 'Special Holiday (130%)'].includes(updatedLog.status);
+                    if (isWorkEntry) {
+                        const totalHours = calculateHours(updatedLog.startTime, updatedLog.endTime);
+                        updatedLog.regularHours = Math.min(totalHours, 8);
+                        updatedLog.overtimeHours = Math.max(0, totalHours - 8);
+                    } else { updatedLog.regularHours = 0; updatedLog.overtimeHours = 0; }
+                    allLogs[logIndex] = updatedLog;
                     saveLogs();
-                    populateYearFilter();
                     displayCurrentMonthLogs();
+                    elements.editModalBackdrop.style.display = 'none';
                 }
             });
 
@@ -375,38 +511,95 @@
                 renderLogs(filteredLogs);
             });
             
-            const closeModal = () => elements.modalBackdrop.style.display = 'none';
-            elements.modalCancel.addEventListener('click', closeModal);
+            const closeConfirmModal = () => elements.confirmModalBackdrop.style.display = 'none';
+            elements.confirmModalCancel.addEventListener('click', closeConfirmModal);
+
+            const closeEditModal = () => elements.editModalBackdrop.style.display = 'none';
+            elements.editModalCancel.addEventListener('click', closeEditModal);
+
+            elements.statusInput.addEventListener('change', () => handleStatusChange(elements.statusInput.value, elements.presentDetails, elements.startTimeInput, elements.endTimeInput));
+            elements.editStatus.addEventListener('change', () => handleStatusChange(elements.editStatus.value, elements.editPresentDetails, elements.editStartTime, elements.editEndTime));
             
-            elements.clearAllBtn.addEventListener('click', () => {
-                elements.modalTitle.textContent = 'Clear All Log Entries';
-                elements.modalInstructions.textContent = 'Are you sure you want to permanently delete all logs? This action cannot be undone.';
-                elements.modalAction.textContent = 'Yes, Delete All';
-                elements.modalBackdrop.style.display = 'flex';
-                elements.modalAction.onclick = () => {
+            // --- Data Management Modal Logic ---
+            const populateDeleteMonthYear = () => {
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const existingDates = new Map();
+                allLogs.forEach(log => {
+                    const date = new Date(log.date + 'T00:00:00');
+                    const year = date.getFullYear();
+                    const month = date.getMonth();
+                    if(!existingDates.has(year)) existingDates.set(year, new Set());
+                    existingDates.get(year).add(month);
+                });
+
+                const years = Array.from(existingDates.keys()).sort((a,b) => b-a);
+                elements.deleteYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+                const updateMonths = () => {
+                    const selectedYear = parseInt(elements.deleteYearSelect.value);
+                    const months = Array.from(existingDates.get(selectedYear) || []).sort((a,b) => a-b);
+                    elements.deleteMonthSelect.innerHTML = months.map(m => `<option value="${m}">${monthNames[m]}</option>`).join('');
+                };
+                elements.deleteYearSelect.addEventListener('change', updateMonths);
+                if (years.length > 0) updateMonths();
+            };
+
+            elements.manageDataBtn.addEventListener('click', () => {
+                populateDeleteMonthYear();
+                elements.manageDataModalBackdrop.style.display = 'flex';
+            });
+            
+            elements.manageDataCloseBtn.addEventListener('click', () => elements.manageDataModalBackdrop.style.display = 'none');
+            
+            elements.deleteAllBtn.addEventListener('click', () => {
+                elements.confirmModalTitle.textContent = 'Delete All Log Data';
+                elements.confirmModalText.textContent = 'Are you sure you want to permanently delete ALL logs? This cannot be undone.';
+                elements.confirmModalAction.textContent = 'Yes, Delete All';
+                elements.confirmModalBackdrop.style.display = 'flex';
+                elements.confirmModalAction.onclick = () => {
                     allLogs = [];
                     saveLogs();
-                    populateYearFilter();
+                    populateYearFilter(elements.yearFilter);
                     displayCurrentMonthLogs();
-                    closeModal();
+                    closeConfirmModal();
+                    elements.manageDataModalBackdrop.style.display = 'none';
                 };
             });
 
-            elements.statusInput.addEventListener('change', handleStatusChange);
+            elements.deleteMonthBtn.addEventListener('click', () => {
+                const month = parseInt(elements.deleteMonthSelect.value);
+                const year = parseInt(elements.deleteYearSelect.value);
+                if(isNaN(month) || isNaN(year)) return;
+                
+                const monthName = elements.deleteMonthSelect.options[elements.deleteMonthSelect.selectedIndex].text;
+                elements.confirmModalTitle.textContent = `Delete Data for ${monthName} ${year}`;
+                elements.confirmModalText.textContent = `Are you sure you want to delete all log entries for ${monthName} ${year}? This cannot be undone.`;
+                elements.confirmModalAction.textContent = 'Yes, Delete';
+                elements.confirmModalBackdrop.style.display = 'flex';
+                elements.confirmModalAction.onclick = () => {
+                    allLogs = allLogs.filter(log => {
+                        const logDate = new Date(log.date + 'T00:00:00');
+                        return !(logDate.getMonth() === month && logDate.getFullYear() === year);
+                    });
+                    saveLogs();
+                    populateYearFilter(elements.yearFilter);
+                    displayCurrentMonthLogs();
+                    closeConfirmModal();
+                    elements.manageDataModalBackdrop.style.display = 'none';
+                };
+            });
 
             // --- App Initialization ---
             loadLogs();
             elements.dateInput.value = getTodayString();
             elements.monthFilter.value = new Date().getMonth();
-            populateYearFilter();
-            handleStatusChange();
+            populateYearFilter(elements.yearFilter);
+            handleStatusChange(elements.statusInput.value, elements.presentDetails, elements.startTimeInput, elements.endTimeInput);
             displayCurrentMonthLogs();
             
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./sw.js')
-                        .then(reg => console.log('ServiceWorker registration successful.'))
-                        .catch(err => console.log('ServiceWorker registration failed: ', err));
+                    navigator.serviceWorker.register('./sw.js').then(reg => console.log('SW registered.')).catch(err => console.error('SW registration failed:', err));
                 });
             }
         });
