@@ -97,7 +97,7 @@
         </div>
         
         <div class="bg-gray-900 rounded-xl shadow-md p-6 mb-6 border border-gray-700">
-            <h2 class="text-xl font-bold mb-4 text-white">View Log History</h2>
+            <h2 class="text-xl font-bold mb-4 text-white">View Past Log History</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -122,7 +122,7 @@
 
         <div>
             <div class="flex justify-between items-center mb-4">
-                 <h2 id="log-history-title" class="text-2xl font-bold text-white">Today's Log Entries</h2>
+                 <h2 id="log-history-title" class="text-2xl font-bold text-white">This Month's Log</h2>
             </div>
             <div id="log-container" class="space-y-3">
                 <p id="empty-log-message" class="text-gray-400 text-center py-8 bg-gray-900 rounded-lg border border-gray-700">No entries yet.</p>
@@ -164,8 +164,7 @@
             };
 
             let allLogs = []; 
-            let currentlyDisplayedLogs = [];
-            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v3'; 
+            const LOGS_STORAGE_KEY = 'workMonitoringAppLogs_v4'; 
 
             const saveLogs = () => {
                 try {
@@ -253,10 +252,10 @@
                 elements.logContainer.innerHTML = '';
                 
                 if (logsToRender.length === 0) {
-                    if (allLogs.length === 0) {
+                     if (allLogs.length === 0) {
                         elements.emptyLogMessage.textContent = "No entries yet. Add one above to get started!";
-                    } else if (elements.logHistoryTitle.textContent.includes("Today")) {
-                        elements.emptyLogMessage.textContent = "No entries logged for today.";
+                    } else if (elements.logHistoryTitle.textContent.includes("This Month")) {
+                        elements.emptyLogMessage.textContent = "No entries logged for this month.";
                     } else {
                         elements.emptyLogMessage.textContent = "No entries found for this period.";
                     }
@@ -312,11 +311,19 @@
                 elements.yearFilter.innerHTML = years.map(year => `<option value="${year}">${year}</option>`).join('');
             };
 
-            const displayTodaysLogs = () => {
-                const today = getTodayString();
-                currentlyDisplayedLogs = allLogs.filter(log => log.date === today);
-                elements.logHistoryTitle.textContent = "Today's Log Entries";
-                renderLogs(currentlyDisplayedLogs);
+            const displayCurrentMonthLogs = () => {
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                const logsForCurrentMonth = allLogs.filter(log => {
+                    const logDate = new Date(log.date + 'T00:00:00');
+                    return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
+                });
+                
+                const monthName = now.toLocaleString('default', { month: 'long' });
+                elements.logHistoryTitle.textContent = `This Month's Log (${monthName} ${currentYear})`;
+                renderLogs(logsForCurrentMonth);
             };
             
             elements.logForm.addEventListener('submit', (e) => {
@@ -337,7 +344,7 @@
                 allLogs.push(newLog);
                 saveLogs();
                 populateYearFilter();
-                displayTodaysLogs();
+                displayCurrentMonthLogs();
                 elements.logForm.reset();
                 elements.dateInput.value = getTodayString();
                 handleStatusChange();
@@ -349,25 +356,23 @@
                     allLogs = allLogs.filter(log => log.id !== parseInt(btn.dataset.id));
                     saveLogs();
                     populateYearFilter();
-                    displayTodaysLogs();
+                    displayCurrentMonthLogs();
                 }
             });
 
             elements.applyFilterBtn.addEventListener('click', () => {
                 const month = parseInt(elements.monthFilter.value);
                 const year = parseInt(elements.yearFilter.value);
-                if (isNaN(year)) {
-                    currentlyDisplayedLogs = [];
-                } else {
-                    currentlyDisplayedLogs = allLogs.filter(log => {
+                let filteredLogs = [];
+                if (!isNaN(year)) {
+                    filteredLogs = allLogs.filter(log => {
                         const logDate = new Date(log.date + 'T00:00:00');
                         return logDate.getMonth() === month && logDate.getFullYear() === year;
                     });
                 }
                 const monthName = elements.monthFilter.options[elements.monthFilter.selectedIndex].text;
-                elements.logHistoryTitle.textContent = `Log History (${monthName} ${year || ''})`;
-                renderLogs(currentlyDisplayedLogs);
-                updateSummary(currentlyDisplayedLogs);
+                elements.logHistoryTitle.textContent = `Log for ${monthName} ${year || ''}`;
+                renderLogs(filteredLogs);
             });
             
             const closeModal = () => elements.modalBackdrop.style.display = 'none';
@@ -379,10 +384,10 @@
                 elements.modalAction.textContent = 'Yes, Delete All';
                 elements.modalBackdrop.style.display = 'flex';
                 elements.modalAction.onclick = () => {
-                    allLogs = []; currentlyDisplayedLogs = [];
+                    allLogs = [];
                     saveLogs();
                     populateYearFilter();
-                    displayTodaysLogs();
+                    displayCurrentMonthLogs();
                     closeModal();
                 };
             });
@@ -395,7 +400,7 @@
             elements.monthFilter.value = new Date().getMonth();
             populateYearFilter();
             handleStatusChange();
-            displayTodaysLogs();
+            displayCurrentMonthLogs();
             
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
